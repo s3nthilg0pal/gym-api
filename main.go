@@ -28,6 +28,7 @@ func main() {
 	r := gin.Default()
 	r.GET("/entry", getEntries(db))
 	r.POST("/entry", postEntry(db))
+	r.GET("/health", healthHandler(db))
 
 	port := os.Getenv("PORT")
 	if port == "" {

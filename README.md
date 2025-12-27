@@ -37,6 +37,24 @@ Adds a new entry with the given date and visited=true.
 }
 ```
 
+### GET /health
+Health check endpoint that verifies database connectivity.
+
+**Response (healthy):**
+```json
+{
+  "status": "healthy"
+}
+```
+
+**Response (unhealthy):**
+```json
+{
+  "status": "unhealthy",
+  "error": "database ping failed"
+}
+```
+
 ## Environment Variables
 
 - `DATABASE_URL`: PostgreSQL connection string (libpq format)
