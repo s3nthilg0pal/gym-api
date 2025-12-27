@@ -58,10 +58,25 @@ The API uses GORM ORM with PostgreSQL. The `entry` table is auto-migrated on sta
 
 ## Docker
 
-Build and run with Docker:
+Build and push the image to GitHub Container Registry:
 
 ```bash
+# Build the image
 docker build -t gym-api .
+
+# Tag for GHCR
+docker tag gym-api ghcr.io/s3nthilg0pal/gym-api:latest
+
+# Login to GHCR (requires GitHub Personal Access Token with package permissions)
+echo $GITHUB_TOKEN | docker login ghcr.io -u s3nthilg0pal --password-stdin
+
+# Push the image
+docker push ghcr.io/s3nthilg0pal/gym-api:latest
+```
+
+Then run locally with:
+
+```bash
 docker run -e DATABASE_URL="host=your-host port=5432 user=your-user password=your-password dbname=your-db sslmode=disable" -e API_KEY="your-api-key" -p 8080:8080 gym-api
 ```
 

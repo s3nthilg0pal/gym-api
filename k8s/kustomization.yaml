@@ -9,4 +9,4 @@ resources:
 
 images:
   - name: ghcr.io/s3nthilg0pal/gym-api
-    newTag: latest
+    newTag: main
