@@ -68,3 +68,13 @@ docker run -e DATABASE_URL="host=your-host port=5432 user=your-user password=you
 ## Kubernetes
 
 Deploy the Docker image to your K8s cluster with appropriate environment variables and database connection.
+
+Use the Kustomize files in the `k8s/` directory for deployment with ArgoCD:
+
+```bash
+kubectl apply -k k8s/
+```
+
+**Note:** Update the `secret.yaml` with your actual base64-encoded database URL and API key before deploying.
+
+Or use ArgoCD to deploy from this repository.
