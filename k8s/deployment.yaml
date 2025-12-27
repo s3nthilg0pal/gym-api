@@ -22,12 +22,12 @@ spec:
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:
-              name: gym-api-secrets
-              key: database-url
+              name: blinko-secret
+              key: DATABASE_URL
         - name: API_KEY
           valueFrom:
             secretKeyRef:
-              name: gym-api-secrets
-              key: api-key
+              name: blinko-secret
+              key: API_KEY
         - name: PORT
           value: "8080"
