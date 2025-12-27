@@ -30,10 +30,17 @@ Adds a new entry with the given date and visited=true.
 }
 ```
 
-**Response:**
+**Response (new entry):**
 ```json
 {
   "message": "entry added"
+}
+```
+
+**Response (entry already exists):**
+```json
+{
+  "message": "entry already exists"
 }
 ```
 

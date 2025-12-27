@@ -47,6 +47,18 @@ func postEntry(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// Check if entry already exists for this date
+		var existing Entry
+		if err := db.Where("date = ?", date).First(&existing).Error; err == nil {
+			// Entry exists, return success (idempotent)
+			c.JSON(http.StatusOK, gin.H{"message": "entry already exists"})
+			return
+		} else if err != gorm.ErrRecordNotFound {
+			// Some other error
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
 		entry := Entry{
 			Date:    date,
 			Visited: true,
