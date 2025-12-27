@@ -40,7 +40,7 @@ Adds a new entry with the given date and visited=true.
 ## Environment Variables
 
 - `DATABASE_URL`: PostgreSQL connection string (libpq format)
-  Example: `host=192.168.0.233 port=5432 user=ps_user password=password dbname=gym sslmode=disable`
+  Example: `host=your-host port=5432 user=your-user password=your-password dbname=your-db sslmode=disable`
 - `API_KEY`: API key for POST endpoint (default: "default-secret")
 - `PORT`: Port to run on (default: 8080)
 
@@ -62,7 +62,7 @@ Build and run with Docker:
 
 ```bash
 docker build -t gym-api .
-docker run -e DATABASE_URL="host=192.168.0.233 port=5432 user=ps_user password=password dbname=gym sslmode=disable" -e API_KEY="your-secret-key" -p 8080:8080 gym-api
+docker run -e DATABASE_URL="host=your-host port=5432 user=your-user password=your-password dbname=your-db sslmode=disable" -e API_KEY="your-api-key" -p 8080:8080 gym-api
 ```
 
 ## Kubernetes
