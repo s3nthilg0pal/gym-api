@@ -22,8 +22,22 @@ func main() {
 	}
 
 	// Auto-migrate the schema
-	if err := db.AutoMigrate(&Entry{}); err != nil {
+	if err := db.AutoMigrate(&Entry{}, &Goal{}); err != nil {
 		log.Fatal("Failed to migrate database:", err)
+	}
+
+	// Ensure goal exists
+	var goal Goal
+	if err := db.First(&goal).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			// Create default goal
+			defaultGoal := Goal{Value: 100}
+			if err := db.Create(&defaultGoal).Error; err != nil {
+				log.Fatal("Failed to create default goal:", err)
+			}
+		} else {
+			log.Fatal("Failed to check goal:", err)
+		}
 	}
 
 	r := gin.Default()

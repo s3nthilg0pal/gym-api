@@ -99,6 +99,20 @@ func getTotalVisits(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"total_visits": count})
+		var goal Goal
+		if err := db.First(&goal).Error; err != nil {
+			// If no goal exists, default to 100
+			if err == gorm.ErrRecordNotFound {
+				goal.Value = 100
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"total_visits": count,
+			"goal":         goal.Value,
+		})
 	}
 }

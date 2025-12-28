@@ -12,3 +12,8 @@ type EntryResponse struct {
 	Date    time.Time `json:"date"`
 	Visited bool      `json:"visited"`
 }
+
+type Goal struct {
+	ID    uint `json:"-" gorm:"primaryKey"`
+	Value int  `json:"value"`
+}

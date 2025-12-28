@@ -65,12 +65,13 @@ Health check endpoint that verifies database connectivity.
 ```
 
 ### GET /visits/total
-Returns the total number of gym visits (entries where visited = true).
+Returns the total number of gym visits (entries where visited = true) and the current goal.
 
 **Response:**
 ```json
 {
-  "total_visits": 42
+  "total_visits": 42,
+  "goal": 100
 }
 ```
 
@@ -83,10 +84,9 @@ Returns the total number of gym visits (entries where visited = true).
 
 ## Database
 
-The API uses GORM ORM with PostgreSQL. The `entry` table is auto-migrated on startup with columns:
-- `id` (primary key, auto-increment)
-- `date` (timestamp)
-- `visited` (boolean)
+The API uses GORM ORM with PostgreSQL. The following tables are auto-migrated on startup:
+- `entry`: id (primary key), date (timestamp), visited (boolean)
+- `goal`: id (primary key), value (integer) - stores the visit goal target
 
 ## Running
 
