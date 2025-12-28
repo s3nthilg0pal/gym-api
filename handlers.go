@@ -90,3 +90,15 @@ func healthHandler(db *gorm.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{"status": "healthy"})
 	}
 }
+
+func getTotalVisits(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var count int64
+		if err := db.Model(&Entry{}).Where("visited = ?", true).Count(&count).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"total_visits": count})
+	}
+}

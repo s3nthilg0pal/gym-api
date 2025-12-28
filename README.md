@@ -64,6 +64,16 @@ Health check endpoint that verifies database connectivity.
 }
 ```
 
+### GET /visits/total
+Returns the total number of gym visits (entries where visited = true).
+
+**Response:**
+```json
+{
+  "total_visits": 42
+}
+```
+
 ## Environment Variables
 
 - `DATABASE_URL`: PostgreSQL connection string (libpq format)
