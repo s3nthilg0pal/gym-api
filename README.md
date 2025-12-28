@@ -2,6 +2,8 @@
 
 A Go API for managing gym entries using GORM ORM.
 
+**CORS:** Enabled with default settings allowing all origins, methods, and headers.
+
 ## Endpoints
 
 ### GET /entry

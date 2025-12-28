@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -26,6 +27,10 @@ func main() {
 	}
 
 	r := gin.Default()
+
+	// Enable CORS with default settings (allows all origins)
+	r.Use(cors.Default())
+
 	r.GET("/entry", getEntries(db))
 	r.POST("/entry", postEntry(db))
 	r.GET("/health", healthHandler(db))
