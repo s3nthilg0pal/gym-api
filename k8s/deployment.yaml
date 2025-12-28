@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
       - name: gym-api
-        image: ghcr.io/s3nthilg0pal/gym-api:latest
+        image: ghcr.io/s3nthilg0pal/gym-api:main
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
         env:
