@@ -64,16 +64,22 @@ Health check endpoint that verifies database connectivity.
 }
 ```
 
-### GET /visits/total
-Returns the total number of gym visits (entries where visited = true) and the current goal.
+### GET /visits/progress/message
+Returns a motivational progress message based on visits compared to goal.
 
 **Response:**
 ```json
 {
-  "total_visits": 42,
-  "goal": 100
+  "message": "💪 In the zone! 42 of 100 days - keep the momentum!"
 }
 ```
+
+**Message tiers:**
+- 🏆 100%+: Champion! You crushed it
+- 🔥 80-99%: Almost there! Finish strong
+- 💪 50-79%: In the zone! Keep the momentum
+- 🚀 20-49%: Building habits! You're on your way
+- 🌱 0-19%: Every rep counts! Let's go
 
 ## Environment Variables
 

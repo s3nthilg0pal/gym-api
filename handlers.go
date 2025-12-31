@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -91,7 +92,7 @@ func healthHandler(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-func getTotalVisits(db *gorm.DB) gin.HandlerFunc {
+func getProgressMessage(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var count int64
 		if err := db.Model(&Entry{}).Where("visited = ?", true).Count(&count).Error; err != nil {
@@ -110,9 +111,26 @@ func getTotalVisits(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 
+		percent := 0
+		if goal.Value > 0 {
+			percent = int(float64(count) / float64(goal.Value) * 100)
+		}
+
+		var message string
+		if percent >= 100 {
+			message = fmt.Sprintf("🏆 Champion! You crushed it — %d of %d days!", count, goal.Value)
+		} else if percent >= 80 {
+			message = fmt.Sprintf("🔥 Almost there! %d of %d days - finish strong!", count, goal.Value)
+		} else if percent >= 50 {
+			message = fmt.Sprintf("💪 In the zone! %d of %d days - keep the momentum!", count, goal.Value)
+		} else if percent >= 20 {
+			message = fmt.Sprintf("🚀 Building habits! %d of %d days - you're on your way!", count, goal.Value)
+		} else {
+			message = fmt.Sprintf("🌱 Every rep counts! %d of %d days - let's go!", count, goal.Value)
+		}
+
 		c.JSON(http.StatusOK, gin.H{
-			"total_visits": count,
-			"goal":         goal.Value,
+			"message": message,
 		})
 	}
 }
