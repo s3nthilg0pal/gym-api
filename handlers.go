@@ -134,3 +134,68 @@ func getProgressMessage(db *gorm.DB) gin.HandlerFunc {
 		})
 	}
 }
+
+func getStreak(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get all entries ordered by date descending
+		var entries []Entry
+		if err := db.Where("visited = ?", true).Order("date DESC").Find(&entries).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		if len(entries) == 0 {
+			c.JSON(http.StatusOK, gin.H{
+				"emoji":   "🎯",
+				"tooltip": "Ready to begin? Your streak starts today!",
+			})
+			return
+		}
+
+		// Calculate streak
+		today := time.Now().Truncate(24 * time.Hour)
+		lastVisit := entries[0].Date.Truncate(24 * time.Hour)
+		daysSinceLastVisit := int(today.Sub(lastVisit).Hours() / 24)
+
+		// Count consecutive days from most recent visit
+		streak := 1
+		for i := 1; i < len(entries); i++ {
+			expected := entries[i-1].Date.Truncate(24*time.Hour).AddDate(0, 0, -1)
+			actual := entries[i].Date.Truncate(24 * time.Hour)
+			if expected.Equal(actual) {
+				streak++
+			} else {
+				break
+			}
+		}
+
+		var emoji, tooltip string
+
+		if daysSinceLastVisit > 1 {
+			// Streak is broken - last visit was more than 1 day ago
+			emoji = "💪"
+			if streak > 1 {
+				tooltip = fmt.Sprintf("Your %d day streak ended. Champions bounce back!", streak)
+			} else {
+				tooltip = "Time for a fresh start. Let's build a new streak!"
+			}
+		} else if streak >= 7 {
+			// Epic streak
+			emoji = "👑"
+			tooltip = fmt.Sprintf("%d day streak! You're a legend!", streak)
+		} else if streak >= 4 {
+			// Solid streak
+			emoji = "🔥"
+			tooltip = fmt.Sprintf("%d day streak! You're on fire!", streak)
+		} else {
+			// Streak just started (1-3 days)
+			emoji = "🌱"
+			tooltip = fmt.Sprintf("%d day streak! Momentum is building!", streak)
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"emoji":   emoji,
+			"tooltip": tooltip,
+		})
+	}
+}

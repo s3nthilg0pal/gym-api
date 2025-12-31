@@ -49,6 +49,7 @@ func main() {
 	r.POST("/entry", postEntry(db))
 	r.GET("/health", healthHandler(db))
 	r.GET("/visits/progress/message", getProgressMessage(db))
+	r.GET("/visits/streak", getStreak(db))
 
 	port := os.Getenv("PORT")
 	if port == "" {

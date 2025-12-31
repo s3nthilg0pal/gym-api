@@ -64,6 +64,24 @@ Health check endpoint that verifies database connectivity.
 }
 ```
 
+### GET /visits/streak
+Returns an emoji and tooltip based on the current visit streak.
+
+**Response:**
+```json
+{
+  "emoji": "🔥",
+  "tooltip": "5 day streak! You're on fire!"
+}
+```
+
+**Streak states:**
+- 🎯 No visits yet: "Ready to begin? Your streak starts today!"
+- 🌱 1-3 day streak: "X day streak! Momentum is building!"
+- 🔥 4-6 day streak: "X day streak! You're on fire!"
+- 👑 7+ day streak: "X day streak! You're a legend!"
+- 💪 Streak broken: "Your X day streak ended. Champions bounce back!"
+
 ### GET /visits/progress/message
 Returns a motivational progress message based on visits compared to goal.
 
