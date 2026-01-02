@@ -354,6 +354,7 @@ func getStats(db *gorm.DB) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, gin.H{
 			"goal":          goal.Value,
+			"total":         totalVisits,
 			"progress":      progress,
 			"currentStreak": fmt.Sprintf("%d days", currentStreak),
 			"longestStreak": fmt.Sprintf("%d days", longestStreak),
