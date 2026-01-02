@@ -449,35 +449,29 @@ func getMilestoneProgress(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		var message string
-		var milestoneName string
+		var milestoneTarget int
 		var remaining int64
 
 		if nextMilestone == nil {
 			// All milestones completed!
-			message = fmt.Sprintf("🏆 You've conquered all milestones! %d workouts and counting - you're a legend!", totalVisits)
-			milestoneName = "All Complete!"
+			message = "🏆 You've conquered all milestones!"
+			milestoneTarget = 0
 			remaining = 0
 		} else {
 			remaining = int64(nextMilestone.Target) - totalVisits
-			milestoneName = nextMilestone.Name
+			milestoneTarget = nextMilestone.Target
 
 			if remaining == 1 {
-				message = fmt.Sprintf("⚡ ONE workout away from '%s'! This is your moment!", nextMilestone.Name)
-			} else if remaining <= 3 {
-				message = fmt.Sprintf("🔥 SO close to '%s'! Only %d workouts to go!", nextMilestone.Name, remaining)
-			} else if remaining <= 5 {
-				message = fmt.Sprintf("💪 '%s' is within reach! Just %d workouts away!", nextMilestone.Name, remaining)
-			} else if lastCompletedMilestone != nil {
-				message = fmt.Sprintf("🚀 '%s' unlocked! Next up: '%s' - %d workouts to go!", lastCompletedMilestone.Name, nextMilestone.Name, remaining)
+				message = fmt.Sprintf("⚡ Next milestone: %d workouts — only 1 to go!", nextMilestone.Target)
 			} else {
-				message = fmt.Sprintf("🌱 Your journey begins! '%s' awaits - %d workouts to go!", nextMilestone.Name, remaining)
+				message = fmt.Sprintf("🏆 Next milestone: %d workouts — only %d to go!", nextMilestone.Target, remaining)
 			}
 		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"message":        message,
 			"total_workouts": totalVisits,
-			"next_milestone": milestoneName,
+			"next_milestone": milestoneTarget,
 			"workouts_to_go": remaining,
 		})
 	}
