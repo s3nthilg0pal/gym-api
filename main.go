@@ -22,7 +22,7 @@ func main() {
 	}
 
 	// Auto-migrate the schema
-	if err := db.AutoMigrate(&Entry{}, &Goal{}); err != nil {
+	if err := db.AutoMigrate(&Workout{}, &Entry{}, &Goal{}, &Milestone{}); err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
 
@@ -35,8 +35,40 @@ func main() {
 			if err := db.Create(&defaultGoal).Error; err != nil {
 				log.Fatal("Failed to create default goal:", err)
 			}
+			goal = defaultGoal
 		} else {
 			log.Fatal("Failed to check goal:", err)
+		}
+	}
+
+	// Seed milestones if none exist
+	var milestoneCount int64
+	db.Model(&Milestone{}).Count(&milestoneCount)
+	if milestoneCount == 0 {
+		milestones := []Milestone{
+			{GoalID: goal.ID, Target: 15, Name: "Getting Started"},
+			{GoalID: goal.ID, Target: 30, Name: "Building Habits"},
+			{GoalID: goal.ID, Target: 50, Name: "Halfway Hero"},
+			{GoalID: goal.ID, Target: 75, Name: "On Fire"},
+			{GoalID: goal.ID, Target: 100, Name: "Goal Crusher"},
+		}
+		if err := db.Create(&milestones).Error; err != nil {
+			log.Fatal("Failed to seed milestones:", err)
+		}
+	}
+
+	// Seed workouts if none exist
+	var workoutCount int64
+	db.Model(&Workout{}).Count(&workoutCount)
+	if workoutCount == 0 {
+		workouts := []Workout{
+			{Name: "Push"},
+			{Name: "Pull"},
+			{Name: "Legs"},
+			{Name: "Cardio"},
+		}
+		if err := db.Create(&workouts).Error; err != nil {
+			log.Fatal("Failed to seed workouts:", err)
 		}
 	}
 
@@ -72,9 +104,14 @@ func main() {
 
 	r.GET("/entry", getEntries(db))
 	r.POST("/entry", postEntry(db))
+	r.PUT("/entry/workout", updateEntryWorkout(db))
 	r.GET("/health", healthHandler(db))
 	r.GET("/visits/progress/message", getProgressMessage(db))
 	r.GET("/visits/streak", getStreak(db))
+	r.GET("/visits/stats", getStats(db))
+	r.GET("/visits/weekly", getWeeklyStats(db))
+	r.GET("/visits/milestone", getMilestoneProgress(db))
+	r.GET("/visits/forecast", getForecast(db))
 
 	port := os.Getenv("PORT")
 	if port == "" {
