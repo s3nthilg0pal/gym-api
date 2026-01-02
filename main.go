@@ -74,7 +74,7 @@ func main() {
 
 	r := gin.Default()
 
-	// Enable CORS for localhost and *.senthil.nz
+	// Enable CORS for localhost and gym.senthil.nz
 	r.Use(cors.New(cors.Config{
 		AllowOriginFunc: func(origin string) bool {
 			// Allow localhost
@@ -88,11 +88,8 @@ func main() {
 			if len(origin) > 18 && origin[:18] == "https://localhost:" {
 				return true
 			}
-			// Allow *.senthil.nz
-			if len(origin) >= 10 && origin[len(origin)-10:] == ".senthil.nz" {
-				return true
-			}
-			if origin == "http://senthil.nz" || origin == "https://senthil.nz" {
+			// Allow gym.senthil.nz
+			if origin == "http://gym.senthil.nz" || origin == "https://gym.senthil.nz" {
 				return true
 			}
 			return false
