@@ -439,13 +439,11 @@ func getMilestoneProgress(db *gorm.DB) gin.HandlerFunc {
 
 		// Find the next milestone
 		var nextMilestone *Milestone
-		var lastCompletedMilestone *Milestone
 		for i := range milestones {
 			if int64(milestones[i].Target) > totalVisits {
 				nextMilestone = &milestones[i]
 				break
 			}
-			lastCompletedMilestone = &milestones[i]
 		}
 
 		var message string
