@@ -13,12 +13,25 @@ import (
 func getEntries(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var entries []Entry
-		if err := db.Find(&entries).Error; err != nil {
+		if err := db.Preload("Workout").Find(&entries).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK, entries)
+		// Transform to response with workout name only
+		var response []EntryResponse
+		for _, e := range entries {
+			entry := EntryResponse{
+				Date:    e.Date,
+				Visited: e.Visited,
+			}
+			if e.Workout != nil {
+				entry.Workout = &e.Workout.Name
+			}
+			response = append(response, entry)
+		}
+
+		c.JSON(http.StatusOK, response)
 	}
 }
 

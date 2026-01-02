@@ -18,6 +18,7 @@ type Entry struct {
 type EntryResponse struct {
 	Date    time.Time `json:"date"`
 	Visited bool      `json:"visited"`
+	Workout *string   `json:"workout,omitempty"`
 }
 
 type Goal struct {
