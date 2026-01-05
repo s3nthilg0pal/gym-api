@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -646,22 +647,27 @@ func getAIStats(db *gorm.DB) gin.HandlerFunc {
 			workoutDist += fmt.Sprintf("%s: %d, ", wc.Name, wc.Count)
 		}
 
+		// Calculate remaining workouts
+		remainingWorkouts := goal.Value - int(totalVisits)
+
 		// Build prompt for Ollama
-		prompt := fmt.Sprintf(`Based on this gym data, give me 1 fun, motivational one-liner insights and another insight when the goal will be completed. We are in 2026. Calculate accurate date. Be witty and encouraging. Use emojis.
+		prompt := fmt.Sprintf(`Based on this gym data, give me 3 fun, motivational one-liner insights. Include one about when the goal will be completed. Be witty and encouraging. Use emojis.
 
 Data:
 - Total workouts: %d
 - Goal: %d workouts
+- Remaining workouts: %d
 - Progress: %d%%
 - Average workouts per week: %.1f
 - Current streak: %d days
 - Workouts this week: %d
 - Workout distribution: %s
 - Weeks active: %.0f
+- Current date: %s
 
 Respond with exactly 3 short one-liners, each on a new line. No numbering, no bullets.`,
-			totalVisits, goal.Value, int(float64(totalVisits)/float64(goal.Value)*100),
-			avgPerWeek, currentStreak, weeklyWorkouts, workoutDist, weeksActive)
+			totalVisits, goal.Value, remainingWorkouts, int(float64(totalVisits)/float64(goal.Value)*100),
+			avgPerWeek, currentStreak, weeklyWorkouts, workoutDist, weeksActive, now.Format("January 2, 2006"))
 
 		// Call Ollama API
 		ollamaURL := os.Getenv("OLLAMA_URL")
@@ -697,8 +703,18 @@ Respond with exactly 3 short one-liners, each on a new line. No numbering, no bu
 			return
 		}
 
+		// Split response into array of insights
+		lines := strings.Split(strings.TrimSpace(ollamaResp.Response), "\n")
+		var insights []string
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line != "" {
+				insights = append(insights, line)
+			}
+		}
+
 		c.JSON(http.StatusOK, gin.H{
-			"insights": ollamaResp.Response,
+			"insights": insights,
 		})
 	}
 }
