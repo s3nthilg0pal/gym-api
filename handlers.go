@@ -647,7 +647,7 @@ func getAIStats(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Build prompt for Ollama
-		prompt := fmt.Sprintf(`Based on this gym data, give me 3 fun, motivational one-liner insights. Be witty and encouraging. Use emojis.
+		prompt := fmt.Sprintf(`Based on this gym data, give me 1 fun, motivational one-liner insights and another insight when the goal will be completed. We are in 2026. Calculate accurate date. Be witty and encouraging. Use emojis.
 
 Data:
 - Total workouts: %d
