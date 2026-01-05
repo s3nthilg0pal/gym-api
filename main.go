@@ -109,6 +109,7 @@ func main() {
 	r.GET("/visits/weekly", getWeeklyStats(db))
 	r.GET("/visits/milestone", getMilestoneProgress(db))
 	r.GET("/visits/forecast", getForecast(db))
+	r.GET("/visits/ai-stats", getAIStats(db))
 
 	port := os.Getenv("PORT")
 	if port == "" {

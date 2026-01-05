@@ -30,5 +30,10 @@ spec:
             secretKeyRef:
               name: gym-secret
               key: API_KEY
+        - name: OLLAMA_URL
+          valueFrom:
+            secretKeyRef:
+              name: gym-ollama-secret
+              key: OLLAMA_URL
         - name: PORT
           value: "8080"
