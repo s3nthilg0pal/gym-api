@@ -647,27 +647,22 @@ func getAIStats(db *gorm.DB) gin.HandlerFunc {
 			workoutDist += fmt.Sprintf("%s: %d, ", wc.Name, wc.Count)
 		}
 
-		// Calculate remaining workouts
-		remainingWorkouts := goal.Value - int(totalVisits)
-
 		// Build prompt for Ollama
-		prompt := fmt.Sprintf(`Based on this gym data, give me 3 fun, motivational one-liner insights. Include one about when the goal will be completed. Be witty and encouraging. Use emojis.
+		prompt := fmt.Sprintf(`Based on this gym data, give me 1 fun, motivational one-liner insights. Be witty and encouraging. Use emojis.
 
 Data:
 - Total workouts: %d
 - Goal: %d workouts
-- Remaining workouts: %d
 - Progress: %d%%
 - Average workouts per week: %.1f
 - Current streak: %d days
 - Workouts this week: %d
 - Workout distribution: %s
 - Weeks active: %.0f
-- Current date: %s
 
-Respond with exactly 3 short one-liners, each on a new line. No numbering, no bullets.`,
-			totalVisits, goal.Value, remainingWorkouts, int(float64(totalVisits)/float64(goal.Value)*100),
-			avgPerWeek, currentStreak, weeklyWorkouts, workoutDist, weeksActive, now.Format("January 2, 2006"))
+Respond with exactly 1 short one-liner. No numbering, no bullets.`,
+			totalVisits, goal.Value, int(float64(totalVisits)/float64(goal.Value)*100),
+			avgPerWeek, currentStreak, weeklyWorkouts, workoutDist, weeksActive)
 
 		// Call Ollama API
 		ollamaURL := os.Getenv("OLLAMA_URL")
