@@ -671,7 +671,7 @@ Respond with exactly 1 short one-liner. No numbering, no bullets.`,
 		}
 
 		reqBody := map[string]interface{}{
-			"model":  "gemma3",
+			"model":  "deepseek-r1",
 			"prompt": prompt,
 			"stream": false,
 		}
