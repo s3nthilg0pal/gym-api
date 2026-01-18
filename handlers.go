@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"time"
@@ -302,7 +303,7 @@ func getStats(db *gorm.DB) gin.HandlerFunc {
 		// Calculate progress percentage
 		progress := 0
 		if goal.Value > 0 {
-			progress = int(float64(totalVisits) / float64(goal.Value) * 100)
+			progress = int(math.Round(float64(totalVisits) / float64(goal.Value) * 100))
 		}
 
 		// Get all entries ordered by date for streak calculation
