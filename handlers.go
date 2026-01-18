@@ -317,16 +317,16 @@ func getStats(db *gorm.DB) gin.HandlerFunc {
 
 		if len(entries) > 0 {
 			// Calculate current streak
-			today := time.Now().Truncate(24 * time.Hour)
-			lastVisit := entries[0].Date.Truncate(24 * time.Hour)
+			today := time.Now().UTC().Truncate(24 * time.Hour)
+			lastVisit := entries[0].Date.UTC().Truncate(24 * time.Hour)
 			daysSinceLastVisit := int(today.Sub(lastVisit).Hours() / 24)
 
 			if daysSinceLastVisit <= 1 {
 				// Streak is active
 				currentStreak = 1
 				for i := 1; i < len(entries); i++ {
-					expected := entries[i-1].Date.Truncate(24*time.Hour).AddDate(0, 0, -1)
-					actual := entries[i].Date.Truncate(24 * time.Hour)
+					expected := entries[i-1].Date.UTC().Truncate(24*time.Hour).AddDate(0, 0, -1)
+					actual := entries[i].Date.UTC().Truncate(24 * time.Hour)
 					if expected.Equal(actual) {
 						currentStreak++
 					} else {
@@ -347,8 +347,8 @@ func getStats(db *gorm.DB) gin.HandlerFunc {
 				tempStreak := 1
 				longestStreak = 1
 				for i := 1; i < len(entriesAsc); i++ {
-					prevDate := entriesAsc[i-1].Date.Truncate(24 * time.Hour)
-					currDate := entriesAsc[i].Date.Truncate(24 * time.Hour)
+					prevDate := entriesAsc[i-1].Date.UTC().Truncate(24 * time.Hour)
+					currDate := entriesAsc[i].Date.UTC().Truncate(24 * time.Hour)
 					expectedNext := prevDate.AddDate(0, 0, 1)
 					if expectedNext.Equal(currDate) {
 						tempStreak++
