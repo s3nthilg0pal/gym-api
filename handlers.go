@@ -1,13 +1,9 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -446,6 +442,18 @@ func getMilestoneProgress(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// Update completed status for milestones that have been reached
+		for i := range milestones {
+			shouldBeCompleted := int64(milestones[i].Target) <= totalVisits
+			if milestones[i].Completed != shouldBeCompleted {
+				milestones[i].Completed = shouldBeCompleted
+				if err := db.Save(&milestones[i]).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+			}
+		}
+
 		if len(milestones) == 0 {
 			c.JSON(http.StatusOK, gin.H{
 				"message":        "🎯 No milestones set yet!",
@@ -565,151 +573,6 @@ func getForecast(db *gorm.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{
 			"current_progress": currentProgress,
 			"future_forecast":  futureForecast,
-		})
-	}
-}
-
-func getAIStats(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Gather data points from DB
-		var totalVisits int64
-		db.Model(&Entry{}).Where("visited = ?", true).Count(&totalVisits)
-
-		var goal Goal
-		db.First(&goal)
-		if goal.Value == 0 {
-			goal.Value = 100
-		}
-
-		// Get first entry date
-		var firstEntry Entry
-		db.Where("visited = ?", true).Order("date ASC").First(&firstEntry)
-
-		// Calculate weeks since start
-		weeksActive := 1.0
-		if !firstEntry.Date.IsZero() {
-			daysElapsed := time.Now().Sub(firstEntry.Date).Hours() / 24
-			weeksActive = daysElapsed / 7
-			if weeksActive < 1 {
-				weeksActive = 1
-			}
-		}
-		avgPerWeek := float64(totalVisits) / weeksActive
-
-		// Get workout distribution
-		type WorkoutCount struct {
-			Name  string
-			Count int64
-		}
-		var workoutCounts []WorkoutCount
-		db.Table("entries").
-			Select("workouts.name, COUNT(*) as count").
-			Joins("LEFT JOIN workouts ON entries.workout_id = workouts.id").
-			Where("entries.workout_id IS NOT NULL").
-			Group("workouts.name").
-			Scan(&workoutCounts)
-
-		// Calculate current streak
-		var entries []Entry
-		db.Where("visited = ?", true).Order("date DESC").Find(&entries)
-		currentStreak := 0
-		if len(entries) > 0 {
-			today := time.Now().Truncate(24 * time.Hour)
-			lastVisit := entries[0].Date.Truncate(24 * time.Hour)
-			daysSinceLastVisit := int(today.Sub(lastVisit).Hours() / 24)
-			if daysSinceLastVisit <= 1 {
-				currentStreak = 1
-				for i := 1; i < len(entries); i++ {
-					expected := entries[i-1].Date.Truncate(24*time.Hour).AddDate(0, 0, -1)
-					actual := entries[i].Date.Truncate(24 * time.Hour)
-					if expected.Equal(actual) {
-						currentStreak++
-					} else {
-						break
-					}
-				}
-			}
-		}
-
-		// Get this week's workouts
-		now := time.Now()
-		weekday := int(now.Weekday())
-		if weekday == 0 {
-			weekday = 7
-		}
-		startOfWeek := now.AddDate(0, 0, -(weekday - 1)).Truncate(24 * time.Hour)
-		var weeklyWorkouts int64
-		db.Model(&Entry{}).Where("visited = ? AND date >= ?", true, startOfWeek).Count(&weeklyWorkouts)
-
-		// Build workout distribution string
-		workoutDist := ""
-		for _, wc := range workoutCounts {
-			workoutDist += fmt.Sprintf("%s: %d, ", wc.Name, wc.Count)
-		}
-
-		// Build prompt for Ollama
-		prompt := fmt.Sprintf(`Based on this gym data, give me 1 fun, motivational one-liner insights. Be witty and encouraging. Use emojis.
-
-Data:
-- Total workouts: %d
-- Goal: %d workouts
-- Progress: %d%%
-- Average workouts per week: %.1f
-- Current streak: %d days
-- Workouts this week: %d
-- Workout distribution: %s
-- Weeks active: %.0f
-
-Respond with exactly 1 short one-liner. No numbering, no bullets.`,
-			totalVisits, goal.Value, int(float64(totalVisits)/float64(goal.Value)*100),
-			avgPerWeek, currentStreak, weeklyWorkouts, workoutDist, weeksActive)
-
-		// Call Ollama API
-		ollamaURL := os.Getenv("OLLAMA_URL")
-		if ollamaURL == "" {
-			ollamaURL = "http://localhost:11434"
-		}
-
-		reqBody := map[string]interface{}{
-			"model":  "deepseek-r1",
-			"prompt": prompt,
-			"stream": false,
-		}
-		jsonBody, _ := json.Marshal(reqBody)
-
-		resp, err := http.Post(ollamaURL+"/api/generate", "application/json", bytes.NewBuffer(jsonBody))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to Ollama: " + err.Error()})
-			return
-		}
-		defer resp.Body.Close()
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response"})
-			return
-		}
-
-		var ollamaResp struct {
-			Response string `json:"response"`
-		}
-		if err := json.Unmarshal(body, &ollamaResp); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response"})
-			return
-		}
-
-		// Split response into array of insights
-		lines := strings.Split(strings.TrimSpace(ollamaResp.Response), "\n")
-		var insights []string
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if line != "" {
-				insights = append(insights, line)
-			}
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"insights": insights,
 		})
 	}
 }

@@ -28,8 +28,9 @@ type Goal struct {
 }
 
 type Milestone struct {
-	ID     uint   `json:"id" gorm:"primaryKey"`
-	GoalID uint   `json:"-"`
-	Target int    `json:"target"`
-	Name   string `json:"name"`
+	ID        uint   `json:"id" gorm:"primaryKey"`
+	GoalID    uint   `json:"-"`
+	Target    int    `json:"target"`
+	Name      string `json:"name"`
+	Completed bool   `json:"completed" gorm:"default:false"`
 }
