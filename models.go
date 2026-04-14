@@ -24,6 +24,7 @@ type EntryResponse struct {
 type Goal struct {
 	ID         uint        `json:"-" gorm:"primaryKey"`
 	Value      int         `json:"value"`
+	Completed  bool        `json:"completed" gorm:"default:false"`
 	Milestones []Milestone `json:"milestones,omitempty" gorm:"foreignKey:GoalID"`
 }
 

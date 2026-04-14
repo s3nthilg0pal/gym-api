@@ -26,7 +26,7 @@ func main() {
 		log.Fatal("Failed to migrate database:", err)
 	}
 
-	// Ensure goal exists
+	// Ensure first goal exists
 	var goal Goal
 	if err := db.First(&goal).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -41,9 +41,9 @@ func main() {
 		}
 	}
 
-	// Seed milestones if none exist
+	// Seed milestones for first goal if none exist
 	var milestoneCount int64
-	db.Model(&Milestone{}).Count(&milestoneCount)
+	db.Model(&Milestone{}).Where("goal_id = ?", goal.ID).Count(&milestoneCount)
 	if milestoneCount == 0 {
 		milestones := []Milestone{
 			{GoalID: goal.ID, Target: 15, Name: "Getting Started"},
@@ -54,6 +54,35 @@ func main() {
 		}
 		if err := db.Create(&milestones).Error; err != nil {
 			log.Fatal("Failed to seed milestones:", err)
+		}
+	}
+
+	// Ensure second goal exists (150 days)
+	var secondGoal Goal
+	if err := db.Where("value = ?", 150).First(&secondGoal).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			secondGoal = Goal{Value: 150}
+			if err := db.Create(&secondGoal).Error; err != nil {
+				log.Fatal("Failed to create second goal:", err)
+			}
+		} else {
+			log.Fatal("Failed to check second goal:", err)
+		}
+	}
+
+	// Seed milestones for second goal if none exist
+	var secondMilestoneCount int64
+	db.Model(&Milestone{}).Where("goal_id = ?", secondGoal.ID).Count(&secondMilestoneCount)
+	if secondMilestoneCount == 0 {
+		milestones := []Milestone{
+			{GoalID: secondGoal.ID, Target: 25, Name: "Getting Started"},
+			{GoalID: secondGoal.ID, Target: 50, Name: "Building Habits"},
+			{GoalID: secondGoal.ID, Target: 75, Name: "Halfway Hero"},
+			{GoalID: secondGoal.ID, Target: 112, Name: "On Fire"},
+			{GoalID: secondGoal.ID, Target: 150, Name: "Goal Crusher"},
+		}
+		if err := db.Create(&milestones).Error; err != nil {
+			log.Fatal("Failed to seed second goal milestones:", err)
 		}
 	}
 

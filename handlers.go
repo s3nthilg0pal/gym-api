@@ -11,6 +11,22 @@ import (
 	"gorm.io/gorm"
 )
 
+// activeGoal returns the latest uncompleted goal, or the last goal if all are completed.
+func activeGoal(db *gorm.DB) (Goal, error) {
+	var goal Goal
+	if err := db.Where("completed = ?", false).Order("id ASC").First(&goal).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			// All goals completed — return the last one
+			if err := db.Order("id DESC").First(&goal).Error; err != nil {
+				return goal, err
+			}
+			return goal, nil
+		}
+		return goal, err
+	}
+	return goal, nil
+}
+
 func getEntries(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var entries []Entry
@@ -180,15 +196,20 @@ func getProgressMessage(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		var goal Goal
-		if err := db.First(&goal).Error; err != nil {
-			// If no goal exists, default to 100
+		goal, err := activeGoal(db)
+		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				goal.Value = 100
 			} else {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
+		}
+
+		// Mark goal as completed if value is reached
+		if count >= int64(goal.Value) && !goal.Completed {
+			db.Model(&goal).Update("completed", true)
+			goal.Completed = true
 		}
 
 		percent := 0
@@ -289,15 +310,21 @@ func getStats(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Get goal
-		var goal Goal
-		if err := db.First(&goal).Error; err != nil {
+		// Get active goal
+		goal, err := activeGoal(db)
+		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				goal.Value = 100
 			} else {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
+		}
+
+		// Mark goal as completed if value is reached
+		if totalVisits >= int64(goal.Value) && !goal.Completed {
+			db.Model(&goal).Update("completed", true)
+			goal.Completed = true
 		}
 
 		// Calculate progress percentage
@@ -436,9 +463,22 @@ func getMilestoneProgress(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Get all milestones ordered by target
+		// Get active goal for milestone scoping
+		goal, err := activeGoal(db)
+		if err != nil && err != gorm.ErrRecordNotFound {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Mark goal as completed if value is reached
+		if goal.ID != 0 && totalVisits >= int64(goal.Value) && !goal.Completed {
+			db.Model(&goal).Update("completed", true)
+			goal.Completed = true
+		}
+
+		// Get milestones for the active goal ordered by target
 		var milestones []Milestone
-		if err := db.Order("target ASC").Find(&milestones).Error; err != nil {
+		if err := db.Where("goal_id = ?", goal.ID).Order("target ASC").Find(&milestones).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -510,15 +550,21 @@ func getForecast(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Get goal
-		var goal Goal
-		if err := db.First(&goal).Error; err != nil {
+		// Get active goal
+		goal, err := activeGoal(db)
+		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				goal.Value = 100
 			} else {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
+		}
+
+		// Mark goal as completed if value is reached
+		if totalVisits >= int64(goal.Value) && !goal.Completed {
+			db.Model(&goal).Update("completed", true)
+			goal.Completed = true
 		}
 
 		// Get first entry date to calculate weeks elapsed
