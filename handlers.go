@@ -476,6 +476,14 @@ func getMilestoneProgress(db *gorm.DB) gin.HandlerFunc {
 			goal.Completed = true
 		}
 
+		// Calculate progress within the current goal by subtracting completed goals' totals
+		var completedGoalsTotal int64
+		db.Model(&Goal{}).Where("completed = ? AND id != ?", true, goal.ID).Select("COALESCE(SUM(value), 0)").Scan(&completedGoalsTotal)
+		goalVisits := totalVisits - completedGoalsTotal
+		if goalVisits < 0 {
+			goalVisits = 0
+		}
+
 		// Get milestones for the active goal ordered by target
 		var milestones []Milestone
 		if err := db.Where("goal_id = ?", goal.ID).Order("target ASC").Find(&milestones).Error; err != nil {
@@ -485,7 +493,7 @@ func getMilestoneProgress(db *gorm.DB) gin.HandlerFunc {
 
 		// Update completed status for milestones that have been reached
 		for i := range milestones {
-			shouldBeCompleted := int64(milestones[i].Target) <= totalVisits
+			shouldBeCompleted := int64(milestones[i].Target) <= goalVisits
 			if milestones[i].Completed != shouldBeCompleted {
 				milestones[i].Completed = shouldBeCompleted
 				if err := db.Save(&milestones[i]).Error; err != nil {
@@ -506,7 +514,7 @@ func getMilestoneProgress(db *gorm.DB) gin.HandlerFunc {
 		// Find the next milestone
 		var nextMilestone *Milestone
 		for i := range milestones {
-			if int64(milestones[i].Target) > totalVisits {
+			if int64(milestones[i].Target) > goalVisits {
 				nextMilestone = &milestones[i]
 				break
 			}
@@ -522,7 +530,7 @@ func getMilestoneProgress(db *gorm.DB) gin.HandlerFunc {
 			milestoneTarget = 0
 			remaining = 0
 		} else {
-			remaining = int64(nextMilestone.Target) - totalVisits
+			remaining = int64(nextMilestone.Target) - goalVisits
 			milestoneTarget = nextMilestone.Target
 
 			if remaining == 1 {
