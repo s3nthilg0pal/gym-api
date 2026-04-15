@@ -206,28 +206,36 @@ func getProgressMessage(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 
+		// Calculate progress within the current goal
+		var completedGoalsTotal int64
+		db.Model(&Goal{}).Where("completed = ? AND id != ?", true, goal.ID).Select("COALESCE(SUM(value), 0)").Scan(&completedGoalsTotal)
+		goalVisits := count - completedGoalsTotal
+		if goalVisits < 0 {
+			goalVisits = 0
+		}
+
 		// Mark goal as completed if value is reached
-		if count >= int64(goal.Value) && !goal.Completed {
+		if goalVisits >= int64(goal.Value) && !goal.Completed {
 			db.Model(&goal).Update("completed", true)
 			goal.Completed = true
 		}
 
 		percent := 0
 		if goal.Value > 0 {
-			percent = int(float64(count) / float64(goal.Value) * 100)
+			percent = int(float64(goalVisits) / float64(goal.Value) * 100)
 		}
 
 		var message string
 		if percent >= 100 {
-			message = fmt.Sprintf("🏆 Champion! You crushed it — %d of %d days!", count, goal.Value)
+			message = fmt.Sprintf("🏆 Champion! You crushed it — %d of %d days!", goalVisits, goal.Value)
 		} else if percent >= 80 {
-			message = fmt.Sprintf("🔥 Almost there! %d of %d days - finish strong!", count, goal.Value)
+			message = fmt.Sprintf("🔥 Almost there! %d of %d days - finish strong!", goalVisits, goal.Value)
 		} else if percent >= 50 {
-			message = fmt.Sprintf("💪 In the zone! %d of %d days - keep the momentum!", count, goal.Value)
+			message = fmt.Sprintf("💪 In the zone! %d of %d days - keep the momentum!", goalVisits, goal.Value)
 		} else if percent >= 20 {
-			message = fmt.Sprintf("🚀 Building habits! %d of %d days - you're on your way!", count, goal.Value)
+			message = fmt.Sprintf("🚀 Building habits! %d of %d days - you're on your way!", goalVisits, goal.Value)
 		} else {
-			message = fmt.Sprintf("🌱 Every rep counts! %d of %d days - let's go!", count, goal.Value)
+			message = fmt.Sprintf("🌱 Every rep counts! %d of %d days - let's go!", goalVisits, goal.Value)
 		}
 
 		c.JSON(http.StatusOK, gin.H{
@@ -321,8 +329,16 @@ func getStats(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 
+		// Calculate progress within the current goal
+		var completedGoalsTotal int64
+		db.Model(&Goal{}).Where("completed = ? AND id != ?", true, goal.ID).Select("COALESCE(SUM(value), 0)").Scan(&completedGoalsTotal)
+		goalVisits := totalVisits - completedGoalsTotal
+		if goalVisits < 0 {
+			goalVisits = 0
+		}
+
 		// Mark goal as completed if value is reached
-		if totalVisits >= int64(goal.Value) && !goal.Completed {
+		if goalVisits >= int64(goal.Value) && !goal.Completed {
 			db.Model(&goal).Update("completed", true)
 			goal.Completed = true
 		}
@@ -330,7 +346,7 @@ func getStats(db *gorm.DB) gin.HandlerFunc {
 		// Calculate progress percentage
 		progress := 0
 		if goal.Value > 0 {
-			progress = int(math.Round(float64(totalVisits) / float64(goal.Value) * 100))
+			progress = int(math.Round(float64(goalVisits) / float64(goal.Value) * 100))
 		}
 
 		// Get all entries ordered by date for streak calculation
@@ -395,7 +411,7 @@ func getStats(db *gorm.DB) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, gin.H{
 			"goal":          goal.Value,
-			"total":         totalVisits,
+			"total":         goalVisits,
 			"progress":      progress,
 			"currentStreak": fmt.Sprintf("%d days", currentStreak),
 			"longestStreak": fmt.Sprintf("%d days", longestStreak),
@@ -569,8 +585,16 @@ func getForecast(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 
+		// Calculate progress within the current goal
+		var completedGoalsTotal int64
+		db.Model(&Goal{}).Where("completed = ? AND id != ?", true, goal.ID).Select("COALESCE(SUM(value), 0)").Scan(&completedGoalsTotal)
+		goalVisits := totalVisits - completedGoalsTotal
+		if goalVisits < 0 {
+			goalVisits = 0
+		}
+
 		// Mark goal as completed if value is reached
-		if totalVisits >= int64(goal.Value) && !goal.Completed {
+		if goalVisits >= int64(goal.Value) && !goal.Completed {
 			db.Model(&goal).Update("completed", true)
 			goal.Completed = true
 		}
@@ -614,10 +638,10 @@ func getForecast(db *gorm.DB) gin.HandlerFunc {
 
 		// Calculate forecast
 		var futureForecast string
-		if totalVisits >= int64(goal.Value) {
+		if goalVisits >= int64(goal.Value) {
 			futureForecast = "🏆 You've already hit your goal! Keep the momentum going!"
 		} else if avgPerWeek > 0 {
-			remainingWorkouts := int64(goal.Value) - totalVisits
+			remainingWorkouts := int64(goal.Value) - goalVisits
 			weeksToGoal := float64(remainingWorkouts) / avgPerWeek
 			completionDate := now.AddDate(0, 0, int(weeksToGoal*7))
 			futureForecast = fmt.Sprintf("📅 At this pace, you'll hit your goal of %d by %s!", goal.Value, completionDate.Format("January 2, 2006"))
