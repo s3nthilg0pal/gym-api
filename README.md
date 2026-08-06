@@ -32,6 +32,49 @@ Adds a new entry with the given date and visited=true.
 }
 ```
 
+### POST /entry/next-workout
+Records a visit and automatically assigns the next workout in the rotation:
+Push → Pull → Legs → Cardio. The first recorded workout is Push. Requests are
+idempotent by date, so a repeated Shortcut run returns the workout already
+recorded for that date.
+
+**Headers:**
+- `X-API-Key`: API key for authentication
+
+**Payload:**
+```json
+{
+  "date": "2023-12-27"
+}
+```
+
+### GET /entry/next-workout
+Returns the workout recorded for a date, or previews the next workout that
+would be assigned. This endpoint does not create or change an entry.
+
+**Query parameter:**
+- `date`: date in `YYYY-MM-DD` format
+
+**Example:** `GET /entry/next-workout?date=2023-12-27`
+
+**Response:**
+```json
+{
+  "date": "2023-12-27",
+  "workout": "Push",
+  "recorded": false
+}
+```
+
+**Response:**
+```json
+{
+  "message": "entry recorded",
+  "date": "2023-12-27",
+  "workout": "Push"
+}
+```
+
 **Response (new entry):**
 ```json
 {

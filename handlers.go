@@ -170,6 +170,151 @@ func updateEntryWorkout(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+// recordNextWorkout creates an entry and assigns the next workout in the
+// Push -> Pull -> Legs -> Cardio rotation. Repeating a request for a date is
+// safe: the workout already assigned to that date is returned unchanged.
+func recordNextWorkout(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		apiKey := c.GetHeader("X-API-Key")
+		expectedKey := os.Getenv("API_KEY")
+		if expectedKey == "" {
+			expectedKey = "default-secret"
+		}
+		if apiKey != expectedKey {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		var payload struct {
+			Date string `json:"date"`
+		}
+		if err := c.ShouldBindJSON(&payload); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		date, err := time.Parse("2006-01-02", payload.Date)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid date format, use YYYY-MM-DD"})
+			return
+		}
+
+		var recordedWorkout string
+		var alreadyRecorded bool
+		err = db.Transaction(func(tx *gorm.DB) error {
+			var entry Entry
+			err := tx.Preload("Workout").Where("date = ?", date).First(&entry).Error
+			if err == nil && entry.Workout != nil {
+				recordedWorkout = entry.Workout.Name
+				alreadyRecorded = true
+				return nil
+			}
+			if err != nil && err != gorm.ErrRecordNotFound {
+				return err
+			}
+
+			rotation := []string{"Push", "Pull", "Legs", "Cardio"}
+			var workouts []Workout
+			if err := tx.Where("name IN ?", rotation).Find(&workouts).Error; err != nil {
+				return err
+			}
+			workoutsByName := make(map[string]Workout, len(workouts))
+			for _, workout := range workouts {
+				workoutsByName[workout.Name] = workout
+			}
+			for _, name := range rotation {
+				if _, ok := workoutsByName[name]; !ok {
+					return fmt.Errorf("required workout %q not found", name)
+				}
+			}
+
+			var lastEntry Entry
+			lastErr := tx.Preload("Workout").Where("workout_id IS NOT NULL").Order("date DESC").First(&lastEntry).Error
+			if lastErr != nil && lastErr != gorm.ErrRecordNotFound {
+				return lastErr
+			}
+
+			nextIndex := 0
+			if lastErr == nil && lastEntry.Workout != nil {
+				for i, name := range rotation {
+					if lastEntry.Workout.Name == name {
+						nextIndex = (i + 1) % len(rotation)
+						break
+					}
+				}
+			}
+			nextWorkout := workoutsByName[rotation[nextIndex]]
+
+			if err == gorm.ErrRecordNotFound {
+				entry = Entry{Date: date, Visited: true, WorkoutID: &nextWorkout.ID}
+				if err := tx.Create(&entry).Error; err != nil {
+					return err
+				}
+			} else if err := tx.Model(&entry).Updates(map[string]interface{}{"visited": true, "workout_id": nextWorkout.ID}).Error; err != nil {
+				return err
+			}
+			recordedWorkout = nextWorkout.Name
+			return nil
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		status := http.StatusCreated
+		message := "entry recorded"
+		if alreadyRecorded {
+			status = http.StatusOK
+			message = "entry already recorded"
+		}
+		c.JSON(status, gin.H{"message": message, "date": payload.Date, "workout": recordedWorkout})
+	}
+}
+
+// getNextWorkout returns the workout recorded for a date, or previews the next
+// workout in the rotation when that date has not been recorded yet.
+func getNextWorkout(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		dateString := c.Query("date")
+		date, err := time.Parse("2006-01-02", dateString)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid date format, use YYYY-MM-DD"})
+			return
+		}
+
+		var entry Entry
+		err = db.Preload("Workout").Where("date = ?", date).First(&entry).Error
+		if err == nil && entry.Workout != nil {
+			c.JSON(http.StatusOK, gin.H{"date": dateString, "workout": entry.Workout.Name, "recorded": true})
+			return
+		}
+		if err != nil && err != gorm.ErrRecordNotFound {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		rotation := []string{"Push", "Pull", "Legs", "Cardio"}
+		var lastEntry Entry
+		lastErr := db.Preload("Workout").Where("workout_id IS NOT NULL").Order("date DESC").First(&lastEntry).Error
+		if lastErr != nil && lastErr != gorm.ErrRecordNotFound {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": lastErr.Error()})
+			return
+		}
+
+		nextIndex := 0
+		if lastErr == nil && lastEntry.Workout != nil {
+			for i, name := range rotation {
+				if lastEntry.Workout.Name == name {
+					nextIndex = (i + 1) % len(rotation)
+					break
+				}
+			}
+		}
+
+		c.JSON(http.StatusOK, gin.H{"date": dateString, "workout": rotation[nextIndex], "recorded": false})
+	}
+}
+
 func healthHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Check database connectivity
