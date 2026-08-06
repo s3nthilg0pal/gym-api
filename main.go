@@ -130,6 +130,8 @@ func main() {
 
 	r.GET("/entry", getEntries(db))
 	r.POST("/entry", postEntry(db))
+	r.GET("/entry/next-workout", getNextWorkout(db))
+	r.POST("/entry/next-workout", recordNextWorkout(db))
 	r.PUT("/entry/workout", updateEntryWorkout(db))
 	r.GET("/health", healthHandler(db))
 	r.GET("/visits/progress/message", getProgressMessage(db))
