@@ -136,6 +136,7 @@ func main() {
 	r.GET("/health", healthHandler(db))
 	r.GET("/visits/progress/message", getProgressMessage(db))
 	r.GET("/visits/streak", getStreak(db))
+	r.GET("/visits/goals", getGoalsProgress(db))
 	r.GET("/visits/stats", getStats(db))
 	r.GET("/visits/weekly", getWeeklyStats(db))
 	r.GET("/visits/milestone", getMilestoneProgress(db))

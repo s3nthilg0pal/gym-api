@@ -454,6 +454,44 @@ func getStreak(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+func getGoalsProgress(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var goals []Goal
+		if err := db.Order("id ASC").Find(&goals).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		var totalVisits int64
+		if err := db.Model(&Entry{}).Where("visited = ?", true).Count(&totalVisits).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		totalTarget := 0
+		goalsProgress := make([]gin.H, 0, len(goals))
+		var priorTargets int64
+		for _, goal := range goals {
+			completed := int64(0)
+			if remaining := totalVisits - priorTargets; remaining > 0 {
+				completed = remaining
+				if completed > int64(goal.Value) { completed = int64(goal.Value) }
+			}
+			percent := 0
+			if goal.Value > 0 { percent = int(math.Round(float64(completed) / float64(goal.Value) * 100)) }
+			goalsProgress = append(goalsProgress, gin.H{"value": goal.Value, "completed": completed, "percent": percent})
+			totalTarget += goal.Value
+			priorTargets += int64(goal.Value)
+		}
+
+		combinedCompleted := totalVisits
+		if combinedCompleted > int64(totalTarget) { combinedCompleted = int64(totalTarget) }
+		combinedPercent := 0
+		if totalTarget > 0 { combinedPercent = int(math.Round(float64(combinedCompleted) / float64(totalTarget) * 100)) }
+		c.JSON(http.StatusOK, gin.H{"goals": goalsProgress, "combined": gin.H{"completed": combinedCompleted, "target": totalTarget, "percent": combinedPercent}})
+	}
+}
+
 func getStats(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get total visits
