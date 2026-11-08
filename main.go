@@ -86,6 +86,35 @@ func main() {
 		}
 	}
 
+	// Ensure third goal exists (115 days)
+	var thirdGoal Goal
+	if err := db.Where("value = ?", 115).First(&thirdGoal).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			thirdGoal = Goal{Value: 115}
+			if err := db.Create(&thirdGoal).Error; err != nil {
+				log.Fatal("Failed to create third goal:", err)
+			}
+		} else {
+			log.Fatal("Failed to check third goal:", err)
+		}
+	}
+
+	// Seed milestones for third goal if none exist
+	var thirdMilestoneCount int64
+	db.Model(&Milestone{}).Where("goal_id = ?", thirdGoal.ID).Count(&thirdMilestoneCount)
+	if thirdMilestoneCount == 0 {
+		milestones := []Milestone{
+			{GoalID: thirdGoal.ID, Target: 20, Name: "Getting Started"},
+			{GoalID: thirdGoal.ID, Target: 40, Name: "Building Habits"},
+			{GoalID: thirdGoal.ID, Target: 58, Name: "Halfway Hero"},
+			{GoalID: thirdGoal.ID, Target: 86, Name: "On Fire"},
+			{GoalID: thirdGoal.ID, Target: 115, Name: "Goal Crusher"},
+		}
+		if err := db.Create(&milestones).Error; err != nil {
+			log.Fatal("Failed to seed third goal milestones:", err)
+		}
+	}
+
 	// Seed workouts if none exist
 	var workoutCount int64
 	db.Model(&Workout{}).Count(&workoutCount)
